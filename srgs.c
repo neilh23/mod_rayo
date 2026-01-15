@@ -962,26 +962,33 @@ void srgs_parser_destroy(struct srgs_parser *parser)
 static int create_regexes(struct srgs_grammar *grammar, struct srgs_node *node, switch_stream_handle_t *stream)
 {
 	sn_log_node_open(node);
+	switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "NODE TYPE %d", node->type);
 	switch (node->type) {
 		case SNT_GRAMMAR:
+			switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "GRAMMAR");
 			if (node->child) {
 				int num_rules = 0;
 				struct srgs_node *child = node->child;
 				if (grammar->root_rule) {
+					switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "ROOT RULE");
 					if (!create_regexes(grammar, grammar->root_rule, NULL)) {
+						switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "created_regexes failed");
 						return 0;
 					}
 					grammar->regex = switch_core_sprintf(grammar->pool, "^%s$", grammar->root_rule->value.rule.regex);
 				} else {
 					switch_stream_handle_t new_stream = { 0 };
 					SWITCH_STANDARD_STREAM(new_stream);
+					switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "Not-root - children %d", node->num_children);
 					if (node->num_children > 1) {
 						new_stream.write_function(&new_stream, "%s", "^(?:");
 					} else {
 						new_stream.write_function(&new_stream, "%s", "^");
 					}
 					for (; child; child = child->next) {
+						switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "Child!");
 						if (!create_regexes(grammar, child, &new_stream)) {
+							switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "create_regexes on child failed");
 							switch_safe_free(new_stream.data);
 							return 0;
 						}
@@ -1005,6 +1012,7 @@ static int create_regexes(struct srgs_grammar *grammar, struct srgs_node *node, 
 			}
 			break;
 		case SNT_RULE:
+			switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "RULE");
 			if (node->value.rule.regex) {
 				return 1;
 			} else if (node->child) {
@@ -1024,6 +1032,7 @@ static int create_regexes(struct srgs_grammar *grammar, struct srgs_node *node, 
 			}
 			break;
 		case SNT_STRING: {
+			switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "STRING %s", node->value.string);
 			int i;
 			for (i = 0; i < strlen(node->value.string); i++) {
 				switch (node->value.string[i]) {
@@ -1048,12 +1057,14 @@ static int create_regexes(struct srgs_grammar *grammar, struct srgs_node *node, 
 			}
 			if (node->child) {
 				if (!create_regexes(grammar, node->child, stream)) {
+					switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "create_regexes on string child failed");
 					return 0;
 				}
 			}
 			break;
 		}
 		case SNT_ITEM:
+			switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "ITEM");
 			if (node->child) {
 				struct srgs_node *item = node->child;
 				if (node->value.item.repeat_min != 1 || node->value.item.repeat_max != 1 || node->value.item.tag) {
@@ -1065,6 +1076,7 @@ static int create_regexes(struct srgs_grammar *grammar, struct srgs_node *node, 
 				}
 				for(; item; item = item->next) {
 					if (!create_regexes(grammar, item, stream)) {
+						switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "create_regexes on item failed");
 						return 0;
 					}
 				}
@@ -1090,6 +1102,7 @@ static int create_regexes(struct srgs_grammar *grammar, struct srgs_node *node, 
 			}
 			break;
 		case SNT_ONE_OF:
+			switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "ONE_OF");
 			if (node->child) {
 				struct srgs_node *item = node->child;
 				if (node->num_children > 1) {
@@ -1100,6 +1113,7 @@ static int create_regexes(struct srgs_grammar *grammar, struct srgs_node *node, 
 						stream->write_function(stream, "%s", "|");
 					}
 					if (!create_regexes(grammar, item, stream)) {
+						switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "create_regexes on one-of item failed");
 						return 0;
 					}
 				}
@@ -1109,21 +1123,26 @@ static int create_regexes(struct srgs_grammar *grammar, struct srgs_node *node, 
 			}
 			break;
 		case SNT_REF: {
+			switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "REF");
 			struct srgs_node *rule = node->value.ref.node;
 			if (!rule->value.rule.regex) {
 				switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "ruleref: create %s regex\n", rule->value.rule.id);
 				if (!create_regexes(grammar, rule, NULL)) {
+					switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "create_regexes on ref failed");
 					return 0;
 				}
 			}
 			if (!rule->value.rule.regex) {
+				switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "not rule on ref regex ");
 				return 0;
 			}
 			stream->write_function(stream, "%s", rule->value.rule.regex);
 			break;
 		}
 		case SNT_ANY:
+			switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "ANY");
 		default:
+			switch_log_printf(SWITCH_CHANNEL_UUID_LOG(grammar->uuid), SWITCH_LOG_DEBUG, "DEFAULT - IGNORE");
 			/* ignore */
 			return 1;
 	}
