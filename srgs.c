@@ -1372,7 +1372,7 @@ enum srgs_match_type srgs_grammar_match(struct srgs_grammar *grammar, const char
 	result = pcre_exec(compiled_regex, NULL, input, strlen(input), 0, PCRE_PARTIAL,
 		ovector, OVECTOR_SIZE);
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "match = %i\n", result);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "match for '%s' = %i\n", input, result);
 	if (result > 0) {
 		int i;
 		char buffer[MAX_INPUT_SIZE + 1];
